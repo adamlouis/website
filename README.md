@@ -1,2 +1,4 @@
 # website
-my personal website: suczewski.com
+
+the code for [suczewski.com](https://suczewski.com)
+
