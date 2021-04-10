@@ -1,0 +1,1 @@
+aws s3 cp --recursive ./website s3://suczewski.com/

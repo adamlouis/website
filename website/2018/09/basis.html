@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>on Basis - a naive implementation of the Basis protocol on the Ethereum blockchain</title>
+  <meta name="description" content="Introduction">
+
+  <link rel="shortcut icon" type="image/png" href="/static/favicon-32.png">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="//2018/09/basis.html">
+</head>
+
+<body>
+  <div class="site-header">
+    <div class="wrapper">
+      <a href="/"><img class="profile-img" src="/static/adam.jpg" /></a>
+      <a class="site-title" href="/">Adam Suczewski</a>
+      <a class="site-about" href="/about.html">about</a>
+      <a class="site-training" href="/training.html">training</a>
+    </div>
+  </div>
+
+  <div class="page-content">
+    <div class="wrapper">
+      <meta property="og:title"
+        content="on Basis - a naive implementation of the Basis protocol on the Ethereum blockchain">
+      <meta property="twitter:title"
+        content="on Basis - a naive implementation of the Basis protocol on the Ethereum blockchain">
+      <meta property="og:description" content="Solidity smart contract of Basis protocol">
+      <meta property="twitter:description" content="Solidity smart contract of Basis protocol">
+
+      <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+        <header class="post-header">
+          <h1 class="post-title" itemprop="name headline">on Basis - a naive implementation of the Basis protocol on the
+            Ethereum blockchain</h1>
+        </header>
+        <hr /><br />
+        <div class="post-content" itemprop="articleBody">
+          <h3 id="introduction">Introduction</h3>
+
+          <p>Some friends of mine are building <a target="_blank" href="https://www.basis.io/">Basis</a>, a price-stable
+            cryptocurrency. To learn more about the protocol and the broader ecosystem, I implemented a naive
+            implementation of Basis in December 2017. Here’s what I did &amp; what I learned.</p>
+
+          <p>See all my code at <a target="_blank"
+              href="https://github.com/adamlouis/naiive-coin">adamlouis/naiive-coin</a>.</p>
+
+          <p><a target="_blank" href="https://github.com/adamlouis/naiive-coin"><img class="naiive-coin-preview"
+                src="/static/basis-naiive-coin.png" /></a></p>
+
+          <h3 id="my-work">My Work</h3>
+
+          <h4 id="protocol-summary">Protocol summary</h4>
+
+          <p>First, I’ll give a summary of the Basis protocol as described in <a target="_blank"
+              href="https://www.basis.io/static/basis_whitepaper_en.pdf">the whitepaper</a>:</p>
+
+          <p>There exist 3 tokens in the system: coins, shares, and bonds. The system attempts to keep the price of a
+            coin pegged to some arbitrary value. The Basis team has chosen 1 USD as the target coin price.</p>
+
+          <p>The coin-USD exchange price is provided to the system via an oracle feed. If the USD-coin price is lower
+            than $1, the system contracts the coin supply to raise the coin-USD price. If the USD-coin price exceeds $1,
+            the system expands coin supply to reduce the coin-USD price.</p>
+
+          <p>With a $1 target price, the re-balancing process should restore the system to a state where the number of
+            coins in the system is equal to the market cap, assuming a price elasticity of 1.</p>
+
+          <p><strong>To contract coin supply</strong>, the system holds a bond auction in which coin holders can
+            purchase bonds using coins. Bonds either:</p>
+          <ol>
+            <li>pay out 1 coin when the system expands</li>
+            <li>expire if no such expansion is required in time</li>
+          </ol>
+
+          <p>“Bond” is a misnomer for these instruments, as they have characteristics of both options and bonds. They’re
+            not bonds - they’re something new.</p>
+
+          <p><strong>To expand coin supply</strong>, the system first pays out coins to all bond holders in the order
+            the bonds were purchased. If all bond holders have been paid, the remaining coins are distributed to
+            shareholders pro-rata.</p>
+
+          <p>That’s it! Read <a target="_blank" href="https://www.basis.io/static/basis_whitepaper_en.pdf">the white
+              paper</a> or Basis’ resources for more information.</p>
+
+          <h4 id="implementation">Implementation</h4>
+
+          <p>In December 2017, I implemented the 3 token system of shares, coins, and bonds as a <strong><a
+                target="_blank"
+                href="https://github.com/adamlouis/naiive-coin/blob/master/contracts/Basecoin.sol">single Ethereum smart
+                contract</a></strong>. My main goals were to better understand the Basis protocol and the greater
+            cryptocurrency space by actually doing something. I make no attempt at a production implementation. See all
+            my code at <a target="_blank" href="https://github.com/adamlouis/naiive-coin">adamlouis/naiive-coin</a>.</p>
+
+          <p><a target="_blank" href="https://github.com/adamlouis/naiive-coin/blob/master/contracts/Basecoin.sol"><code
+                class="highlighter-rouge">contracts/Basecoin.sol</code></a> contains the solidity implementation. The
+            protocol as described above and in the whitepaper runs off 5 salient write functions:</p>
+
+          <figure class="highlight">
+            <pre><code class="language-javascript" data-lang="javascript"><span class="c1">// transfer `value` shares from `to` to `msg.sender`</span>
+<span class="kd">function</span> <span class="nx">transferShares</span><span class="p">(</span><span class="nx">address</span> <span class="nx">to</span><span class="p">,</span> <span class="nx">uint</span> <span class="nx">value</span><span class="p">)</span>
+
+<span class="c1">// transfer `value` coins from `to` to `msg.sender`</span>
+<span class="kd">function</span> <span class="nx">transferCoins</span><span class="p">(</span><span class="nx">address</span> <span class="nx">to</span><span class="p">,</span> <span class="nx">uint</span> <span class="nx">value</span><span class="p">)</span>
+
+<span class="c1">// submit a vote of `price` for the current usd-basecoin exchange rate</span>
+<span class="kd">function</span> <span class="nx">submitOracleExchangeRate</span><span class="p">(</span><span class="nx">uint</span> <span class="nx">price</span><span class="p">)</span>
+
+<span class="c1">// place a bid for `quantity` bonds at price `price`</span>
+<span class="c1">// bids are destroyed in next call to tick()</span>
+<span class="kd">function</span> <span class="nx">placeBondBid</span><span class="p">(</span><span class="nx">uint</span> <span class="nx">price</span><span class="p">,</span> <span class="nx">uint</span> <span class="nx">quantity</span><span class="p">)</span>
+
+<span class="c1">// read the oracle price and expand or contract the coin supply accordingly</span>
+<span class="kd">function</span> <span class="nx">tick</span><span class="p">()</span></code></pre>
+          </figure>
+
+          <p>This API captures the basics of the system. I cut corners where possible &amp; favored simple, naiive
+            approaches over complicated but efficient ones. Check out <a target="_blank"
+              href="https://github.com/adamlouis/naiive-coin">the code</a> and comments for details.</p>
+
+          <p>In addition to the smart contract, I wrote a <strong><a target="_blank"
+                href="https://github.com/adamlouis/naiive-coin/blob/master/src/App.js">React web
+                application</a></strong> that is a dashboard of the Basecoin system. From this dashboard, one can:</p>
+          <ol>
+            <li>view coin, share, and bond holdings</li>
+            <li>interact with the smart contract</li>
+          </ol>
+
+          <p>I built this using the <a>truffle framework</a>. Truffle makes it easy to build javascript web apps that
+            interact with solidity smart contracts.</p>
+
+          <p>I put this smart contract on the Ethereum blockchain in July 2018 at <a target="_blank"
+              href="https://etherscan.io/tx/0x4b525b3ab3599f2dc42506de304181db1f45d62ebb7616390ef2358e0aeef354"><code
+                class="highlighter-rouge">0x4b525b3ab3599f2dc42506de304181db1f45d62ebb7616390ef2358e0aeef354</code></a>
+          </p>
+
+          <h3 id="my-learnings">My Learnings</h3>
+
+          <h4 id="on-basis">On Basis</h4>
+
+          <p>Here are some of my thoughts on Basis after working on this project:</p>
+
+          <p><strong>philosophical</strong></p>
+
+          <ul>
+            <li>
+              <p>Price volatility of Bitcoin, Ethereum or other cryptocurrencies will be an impediment for their mass
+                adoption as money. Even if their price volatility matched that of gold (~10% per year), they would still
+                be unsuitable for commerce and long term financial contracts. Money is the “killer app” of blockchain
+                and any cryptocurrency that ultimately achieves widespread use as money will have low price (purchasing
+                power) volatility. This is great news for Basis! There is need for a stablecoin in a world with
+                cryptocurrency.</p>
+            </li>
+            <li>
+              <p>Success of Basis is highly dependent on consumer distribution &amp; utility. The likely first users are
+                cryptocurrency traders. Expansion beyond a technically sophisticated audience though will be challenging
+                and require significant consumer product &amp; design work, user education, and integrations from the
+                wider world.</p>
+            </li>
+          </ul>
+
+          <p><strong>technical</strong></p>
+
+          <p>Here are some technical questions related to the Basis system and its implementation on the Ethereum
+            blockchain:</p>
+
+          <ul>
+            <li>
+              <p>are the economics &amp; price stability mechanisms of Basis viable given the gas &amp; storage
+                constraints? in my implementation, the cost to run <code class="highlighter-rouge">tick()</code> (the
+                auction to re-balance the system) is expensive and scales linearly with the number of bond holders and
+                share holders. who pays for the gas costs? how can this re-balancing happen more efficient at scale?</p>
+            </li>
+            <li>
+              <p>does the frequency and cost of running the auction and re-balancing the economy impose a limit to
+                Basis’s growth? Basis can only grow after an auction / re-balance. An auction / re-balance can only
+                happen after enough shareholders have submitted their votes on the current USD-Basis coin price. The
+                Ethereum blockchain presently processes only ~15 transactions per second. In the success case where
+                there are thousands or millions of Basis users, oracle votes and operations related to the auction may
+                consume an unreasonably large portion of total Ethereum transaction resources. There is ongoing work in
+                Ethereum to improve transaction volume, but its not live yet. How does Basis handle this?</p>
+            </li>
+            <li>
+              <p>How often does the economy need to re-balance for the coin prices to be stable? Or rather, what should
+                we expect the relationship to be for time between reconciliations and
+                price volatility to look like? How is this affected by the gas cost of re-balancing the coin supply? Is
+                there any dynamic adaptation logic to control when auctions happen? My idea is to take as inputs:
+                (N_current = # of oracle price votes by coin ownership), (N_last = # of oracle price votes by coin
+                ownership at last reconciliation), (T_rec = time since last reconciliation) and trigger an auction then
+                some threshold is met. The threshold starts at N_last and decays as T_rec increases.</p>
+            </li>
+            <li>
+              <p>what incentive or penalty structure makes for accurate oracle guesses? how are oracle rewards balanced
+                with needs to expand and contract coin supply? are there scenarios where oracles would want to bid
+                dishonestly?</p>
+            </li>
+            <li>
+              <p>what are the mechanics, sequencing, and frequency of the bond auctions, oracle price guessing, and
+                expanding and contracting the coin supply? the sequencing of each of these will affect trade behavior
+                and even currency stability. i punted this question- in my implementation, oracle price guessing and
+                bonding bidding run continuously and supply contracts or expands at will at a call to <code
+                  class="highlighter-rouge">tick()</code>.</p>
+            </li>
+            <li>
+              <p>in a contraction, what happens if there is insufficient bond demand? is there a risk of losing the peg
+                or crashing if bond markets are not deep enough? in early days especially, what gives people confidence
+                in the return of Basis to $1 amid a contracting supply? what’s the role of the pre-sale / ico funds
+                here?</p>
+            </li>
+            <li>
+              <p>in an expansion, what happens if <code
+                  class="highlighter-rouge">(# of share holders) &gt;&gt;&gt; (# of coins for expansion)</code>? how can
+                coins be distributed efficiently and fairly? e.g. smallest units of coin distributed randomly to share
+                holders pro rata.</p>
+            </li>
+            <li>
+              <p>what will share liquidity look like in early days? will pre-sale / ico investors be trading actively
+                and have the tools to do so easily? does this matter?</p>
+            </li>
+          </ul>
+
+          <h4 id="on-cryptocurrency">On cryptocurrency</h4>
+
+          <p>Below are some thoughts on Basis &amp; cryptocurrency broadly after working on my project. First, some of
+            my favorite reading materials:</p>
+
+          <p><em>Technical &amp; primary sources:</em></p>
+
+          <ul>
+            <li><a target="_blank" href="https://bitcoin.org/bitcoin.pdf">Bitcoin white paper</a></li>
+            <li><a target="_blank" href="https://github.com/ethereum/wiki/wiki/White-Paper">Ethereum white paper</a>
+            </li>
+            <li><a target="_blank" href="https://ethereum.github.io/yellowpaper/paper.pdf">Ethereum yellow paper</a>
+            </li>
+            <li><a target="_blank" href="http://bitcoinbook.cs.princeton.edu/">Princeton cryptocurrency website</a></li>
+            <li><a target="_blank"
+                href="https://d28rh4a8wq0iu5.cloudfront.net/bitcointech/readings/princeton_bitcoin_book.pdf">Princeton
+                cryptocurrency textbook</a></li>
+          </ul>
+
+          <p><em>Easy reads</em></p>
+          <ul>
+            <li>Andreas Antonopoulos’s <a target="_blank"
+                href="https://www.amazon.com/Internet-Money-Andreas-M-Antonopoulos/dp/1537000454">The Internet of Money
+                1</a> and <a target="_blank"
+                href="https://www.amazon.com/Internet-Money-Two-Andreas-Antonopoulos-ebook/dp/B075VB7LVG">The Internet
+                of Money 2</a> books are fantastic, easy reads that describe bitcoin &amp; cryptocurrency. Great for
+              non-technical audience. Reading these books was inspiring / empowering - really makes it seem like the
+              next frontier.</li>
+          </ul>
+
+          <p><em>Great analysis</em></p>
+
+          <ul>
+            <li>
+              <p>The <a target="_blank" href="https://nvlpubs.nist.gov/nistpubs/ir/2018/NIST.IR.8202.pdf">NIST
+                  blockchain paper</a> is great. Check out Section 8, “Application Considerations”.</p>
+            </li>
+            <li>
+              <p>Matt Siliski’s articles <a target="_blank"
+                  href="https://medium.com/swlh/blockchain-benefits-use-cases-d259c823e968">What Are Blockchains
+                  Actually Good For?</a> and <a target="_blank"
+                  href="https://medium.com/swlh/blockchain-alternatives-b21184ccc345">Blockchain Alternatives</a> are
+                great. They sift through the hype and the describe the use cases where blockchain makes sense.</p>
+            </li>
+          </ul>
+
+          <p><em>Critical view &amp; humor</em></p>
+
+          <ul>
+            <li><a target="_blank" href="https://www.bloomberg.com/opinion/authors/ARbTQlRLRjE/matthew-s-levine">Matt
+                Levine</a> is my favorite finance writer. His daily email is funny &amp; insightful. He has deep
+              understanding of traditional finance and provides great critical commentary of cryptocurrency buzz.</li>
+          </ul>
+
+          <p><strong>My soap box</strong>:</p>
+
+          <ul>
+            <li>Required use cases for blockchains are limited and the “killer app” of the blockchain is money. The <a
+                target="_blank" href="https://nvlpubs.nist.gov/nistpubs/ir/2018/NIST.IR.8202.pdf">NIST blockchain
+                paper</a> and <a target="_blank"
+                href="https://medium.com/swlh/blockchain-benefits-use-cases-d259c823e968">Siliski’s article</a> provide
+              correct breakdowns of blockchain use cases. There are many creative blockchain projects, but money
+              transfer is the single best application for a borderless, trustless, decentralized, anonymous ledger (i.e.
+              blockchain).</li>
+          </ul>
+
+          <div style="font-weight:bold;font-size:12px;text-align:center"><a target="_blank" style="color:black"
+              href="https://nvlpubs.nist.gov/nistpubs/ir/2018/NIST.IR.8202.pdf">Flowchart from the NIST paper via the
+              DHS Science &amp; Technology Directorate</a></div>
+
+          <p><a target="_blank" href="https://nvlpubs.nist.gov/nistpubs/ir/2018/NIST.IR.8202.pdf"><img
+                class="nist-blockchain-preview" src="/static/basis-nist-blockchain.png" /></a></p>
+
+          <ul>
+            <li>
+              <p>The convenience &amp; low cost of existing centralized products relative to new decentralized,
+                blockchain-based products will inhibit growth of those decentralized products. Presently, most consumers
+                are not concerned about the privacy / security / data-ownership features that many decentralized
+                products espouse. Free, easy, frictionless, centralized consumer products are preferable to the
+                presently expensive, cumbersome, irreversible decentralized products. I believe in most consumer
+                domains, we will continue to trend towards more regulated centralized products rather than decentralized
+                products with privacy built-in. Network effects &amp; moats of existing companies/products will make it
+                difficult for new decentralized products to break in.</p>
+            </li>
+            <li>
+              <p>Some argue that after the cryptocurrency bubble pops, blockchain technology absent of cryptocurrency
+                will prevail as the major accomplishment / salient feature of the era [needs citation]. This is wrong -
+                they are currently inseparable. Perhaps I am arguing “blockchain” semantics here. A system that isn’t
+                solving the <a target="_blank" href="https://en.wikipedia.org/wiki/Byzantine_fault_tolerance">Byzantine
+                  generals problem</a> of reaching consensus amongst unreliable actors isn’t a blockchain. Currently,
+                the mining/cryptocurrency reward system is the only solution to this problem. Distributed, chained data
+                stores are great (think <code class="highlighter-rouge">git</code>), but blockchain implies distributed
+                consensus.</p>
+            </li>
+            <li>
+              <p>New “decentralized” systems can still trend towards centralization. In proof of work systems, mining
+                can become centralized. Economies of scale make it cheaper for a few big players to build efficient,
+                mass infrastructure. In proof of stake or distributed proof of stake systems, concentration of wealth
+                and reliance on other actors again become issues. These problems are likely solvable, but are obstacles
+                to the decentralized utopian narrative.</p>
+            </li>
+          </ul>
+
+
+        </div>
+      </article>
+
+    </div>
+  </div>
+</body>
+<script type="text/javascript">
+  var items = document.getElementsByClassName('my-email');
+  var e1 = 'YWRhbQ==';
+  var e2 = 'QHN1Y3pld3NraS5jb20';
+  for (var i = 0; i < items.length; i++) {
+    items[i].innerHTML = atob(e1) + '<span></span>' + atob(e2);
+  }
+</script>
+
+</html>

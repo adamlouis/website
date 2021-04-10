@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Adam Suczewski</title>
+    <meta name="description" content="Personal website of Adam Suczewski">
+    <link rel="shortcut icon" type="image/png" href="/static/favicon-32.png">
+    <link rel="stylesheet" href="/css/main.css">
+</head>
+
+<body>
+    <div class="site-header">
+        <div class="wrapper">
+            <a href="/"><img class="profile-img" src="/static/adam.jpg" /></a>
+            <a class="site-title" href="/">Adam Suczewski</a>
+            <a class="site-about" href="/about.html">about</a>
+            <a class="site-training" href="/training.html">training</a>
+        </div>
+    </div>
+    <div class="page-content">
+        <div class="wrapper">
+            <div class="home">
+                <ul class="post-list">
+                    <li>
+                        <a class="post-link" href="/2021/03/200-mile-bike-ride.html">200 mile bike ride!</a>
+                        <ul>
+                            <li>rode a 200 mile ride solo from the SF peninsula to Tomales & back</li>
+                            <li>~10,794ft evalvation gain & 11 hrs 28 min moving time</li>
+                        </ul>
+                        <div class="post-date">March 2021</div>
+                    </li>
+                    <li>
+                        <a class="post-link" href="/2020/05/ggp-ironman-copy.html">Golden Gate Park Ironman - kinda!</a>
+                        <ul>
+                            <li>112 mile bike ride (GPS) in 4 hrs 46 minutes = 23.5 miles per hour</li>
+                            <li>~163 laps around a ~0.7 mile track</li>
+                            <li>5k run @ 6:46 / mi after</li>
+                        </ul>
+                        <div class="post-date">May 2020</div>
+                    </li>
+                    <li>
+                        <a class="post-link" href="/2018/12/spotify.html">Spotify logger - track plays, discovery weekly
+                            & personal trends</a>
+                        <ul>
+                            <li>Spotify developer API integration to poll for listening history</li>
+                            <li>Cost-efficient AWS stack on spotify.suczewski.com</li>
+                            <li>Buzzwords: Terraform / Vue / API Gateway / Lambda / S3 / DynamoDB / Cloudflare / SNS
+                            </li>
+                        </ul>
+                        <div class="post-date">December 2018</div>
+                    </li>
+                    <li>
+                        <a class="post-link" href="/2018/09/basis.html">on Basis - a naive implementation of the Basis
+                            protocol on the Ethereum blockchain</a>
+                        <ul>
+                            <li>Solidity smart contract of Basis protocol</li>
+                            <li>React frontend to interact with smart contract and blockchain</li>
+                            <li>Resulting questions & considerations for Basis protocol & cryptocurrency broadly</li>
+                        </ul>
+                        <div class="post-date">September 2018</div>
+                    </li>
+                    <li>
+                        <a class="post-link" href="/2018/07/returnif.html">returnif - introducing the conditional return
+                            statement</a>
+                        <ul>
+                            <li>An introduction to the `returnif` keyword.</li>
+                            <li>A quick, proof-of-concept hack that adds part 1 of `returnif` to JS via the Babel
+                                compiler.</li>
+                        </ul>
+                        <div class="post-date">July 2018</div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+<script type="text/javascript">
+    var items = document.getElementsByClassName('my-email');
+    var e1 = 'YWRhbQ==';
+    var e2 = 'QHN1Y3pld3NraS5jb20';
+    for (var i = 0; i < items.length; i++) {
+        items[i].innerHTML = atob(e1) + '<span></span>' + atob(e2);
+    }
+</script>
+
+</html>

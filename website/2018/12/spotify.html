@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Spotify logger - track plays, discovery weekly &amp; personal trends</title>
+  <meta name="description" content="Introduction">
+
+  <link rel="shortcut icon" type="image/png" href="/static/favicon-32.png">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="//2018/12/spotify.html">
+</head>
+
+<body>
+  <div class="site-header">
+    <div class="wrapper">
+      <a href="/"><img class="profile-img" src="/static/adam.jpg" /></a>
+      <a class="site-title" href="/">Adam Suczewski</a>
+      <a class="site-about" href="/about.html">about</a>
+      <a class="site-training" href="/training.html">training</a>
+    </div>
+  </div>
+
+  <div class="page-content">
+    <div class="wrapper">
+      <meta property="og:title" content="Spotify logger - track plays, discovery weekly & personal trends">
+      <meta property="twitter:title" content="Spotify logger - track plays, discovery weekly & personal trends">
+      <meta property="og:description" content="Spotify developer API integration to poll for listening history">
+      <meta property="twitter:description" content="Spotify developer API integration to poll for listening history">
+
+      <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+        <header class="post-header">
+          <h1 class="post-title" itemprop="name headline">Spotify logger - track plays, discovery weekly & personal
+            trends</h1>
+        </header>
+        <hr /><br />
+        <div class="post-content" itemprop="articleBody">
+          <h3 id="introduction">Introduction</h3>
+
+          <p>It’s frustrating to listen to a song you like, forget the words, and never hear it again. Or to enjoy to
+            your Spotify “Discover Weekly” playlist only for it to disappear the next week. I built a system to fix
+            these issues: <a target="_blank" href="https://spotify.suczewski.com/">https://spotify.suczewski.com</a>.
+          </p>
+
+          <p>My system:</p>
+          <ul>
+            <li>saves all plays</li>
+            <li>saves all “Discovery Weekly” playlists</li>
+            <li>saves your top songs &amp; artists of the last month, 6 months, and all-time &amp; how each changes over
+              time</li>
+          </ul>
+
+          <p>Tracking all of this information has the nice effect of serving as a personal timeline. I associate certain
+            songs &amp; artists with times in my life, and the chronology here is an implicit journal that provides
+            hints to memorable life moments.</p>
+
+          <p>In other words, why did I listen to The Band’s <a target="_blank"
+              href="https://www.youtube.com/watch?v=ahe-n6to3W4">“When I Paint My Masterpiece”</a> 73 times in a row
+            between 11pm &amp; 5am on 10/3/2018 - 10/4/2018? Why was “Mele Kalikimaka” my Christmas song of 2018? When
+            was I listening to new music vs. re-playing the favorites?</p>
+
+          <h3 id="ux">UX</h3>
+
+          <p>The app runs on <a target="_blank" href="https://spotify.suczewski.com/">https://spotify.suczewski.com</a>.
+            The app has 3 pages that correspond to the 3 pieces of information the system tracks: plays, “Discovery
+            Weekly”, and top songs &amp; artists.</p>
+
+          <div style="font-weight:bold;font-size:14px;text-align:center">UI for all recent plays: "When I Paint My
+            Masterpiece" returns!</div>
+          <p><img class="spotify-screenshot" src="/static/spotify-tracks.png" /></p>
+
+          <div style="font-weight:bold;font-size:14px;text-align:center">UI for "Discovery Weekly" playlists: I don't
+            these songs, but Levon Helm returns!</div>
+          <p><img class="spotify-screenshot" src="/static/spotify-dw.png" /></p>
+
+          <div style="font-weight:bold;font-size:14px;text-align:center">UI for your top songs and artists: "All I can
+            do is write about it" (in a blog post)</div>
+          <p><img class="spotify-screenshot" src="/static/spotify-top.png" /></p>
+
+          <h3 id="technical-architecture">Technical Architecture</h3>
+
+          <p>Here’s how it’s built.</p>
+
+          <div style="font-weight:bold;font-size:14px;text-align:center">Architecture diagram of suczewski.com</div>
+          <p><img class="spotify-screenshot" src="/static/spotify-architecture-3.png" /></p>
+
+          <h4 id="dns">DNS</h4>
+
+          <p>I bought suczewski.com on GoDaddy and manage DNS on Cloudflare. The <code
+              class="highlighter-rouge">suczewski.com</code> <code class="highlighter-rouge">A</code> record points to
+            this blog, which is hosted on <a target="_blank"
+              href="https://docs.gitlab.com/ee/user/project/pages/">GitLab Pages</a>. The <code
+              class="highlighter-rouge">spotify</code> <code class="highlighter-rouge">CNAME</code> subdomain points to
+            an AWS Cloudfront front address behind which is an API Gateway deployment (<a target="_blank"
+              href="https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-custom-domains.html">docs</a>).
+          </p>
+
+          <p>The main challenge here was getting SSL certificates sorted out, especially for GitLab pages. <a
+              target="_blank"
+              href="https://about.gitlab.com/2017/02/07/setting-up-gitlab-pages-with-cloudflare-certificates/"> This
+              article</a> is great though and gives the critical tip that “CloudFlare doesn’t combine both PEM and root
+            certificates in one, so we need to copy the root certificate (aka “intermediate”) CloudFlare Origin CA — RSA
+            Root … and paste it below your certificate (PEM).”</p>
+
+          <h4 id="api-gateway">API Gateway</h4>
+
+          <p>All <code class="highlighter-rouge">spotify.suczewski.com</code> requests are routed to API Gateway.</p>
+
+          <ul>
+            <li>Requests with path <code class="highlighter-rouge">/api/*</code> are proxied to AWS Lambda.</li>
+            <li>Requests with path <code class="highlighter-rouge">/static/*</code> are proxied to AWS S3.</li>
+          </ul>
+
+          <p>The main challenge here was wrapping my head around API Gateway which was new to me. Documentation is
+            pretty good, but I got stuck on some details. For example, how to get API Gateway to send some Content-Types
+            as binary (pngs) but some as text (html, js). For this, I just created 2 separate API Gateway resources,
+            <code class="highlighter-rouge">/static</code> and <code class="highlighter-rouge">/static/images</code>,
+            and configured them separately. There were a couple of other tricks like this where I was 90% done but
+            struggled to finish the last 10% and settled for “ok” solutions.
+          </p>
+
+          <p>Also, it’s unnecessary to proxy the static content through API Gateway. I could just serve it through
+            Cloudfront. I chose the API Gateway approach because I have a small app with very low API Gateway costs,
+            liked the idea of managing all routes in one place, and didn’t want to think about CORS issues related to
+            hosting static content and a json api on different subdomains.</p>
+
+          <h4 id="s3">S3</h4>
+
+          <p>Nothing fancy. I put my Vue JS bundles, html, &amp; images in there. Access through API Gateway means the
+            bucket can stay private and access is granted through IAM roles.</p>
+
+          <p>In future work, I may add CSV / SQL exports here &amp; abandon the read Lambda to reduce DB load and keep
+            the system running cheaply.</p>
+
+          <h4 id="vue">Vue</h4>
+
+          <p>I’ve used <a href="https://reactjs.org/" target="_blank">React</a> extensively so wanted to give <a
+              href="https://vuejs.org/" target="_blank">Vue</a> a try. It’s generally similar to React. I like that it’s
+            a bit more opinionated than React and often has a “correct” way of doing things. I don’t like that it
+            encourages data mutability. My Vue code was more concise than my React code which was nice. I also like that
+            Vue encourages keeping html, css, and js all in one file which promotes modular thinking.</p>
+
+          <p>For an <em>important</em> project, I would pick React over Vue simply for its wider adoption &amp; better
+            tooling. Each framework has its technical pros and cons and it’s possible to write good and bad, mutable and
+            immutable, concise and verbose implementations in each. Both can be good choices.</p>
+
+          <p>For my next fun project, I’d like to use <a href="https://reactjs.org/" target="_blank">ReasonML</a>. I am
+            a fan of OCaml and functional programming and this is a cool thing. I have found using <a
+              href="https://flow.org/" target="_blank">Flow types</a> unsatisfying mainly because the type safety is
+            brittle and often doesn’t work with 3rd party libraries. Using Flow adds verbosity and overhead to codebases
+            that outweighs its partial type safety &amp; code-as-documentation benefits. The paradigm I generally use
+            now in JS is to rely heavily on libraries like <a href="https://lodash.com/docs/4.17.11"
+              target="_blank">Lodash</a> to take care of <code class="highlighter-rouge">undefined</code>/<code
+              class="highlighter-rouge">null</code> checks and to access data safely. This was especially critical prior
+            to React 16’s <a href="https://reactjs.org/docs/react-component.html#componentdidcatch"
+              target="_blank"><code class="highlighter-rouge">componentDidCatch()</code></a> where a bad <code
+              class="highlighter-rouge">undefined</code> error could break an entire application. ReasonML and its
+            strict typing seem promising!</p>
+
+          <p>Will consider writing more on this later!</p>
+
+          <h4 id="read-lambda">Read Lambda</h4>
+
+          <p>The read Lambda supports the following API. The Vue app hits this API. There are 6 salient endpoints for
+            fetching <strong>normalized</strong> data. The <code class="highlighter-rouge">POST</code> endpoints are
+            actually read operations despite the HTTP verb. Using <code class="highlighter-rouge">POST</code> enables
+            sending our ids in the request body - requests bodies are technically allowed in <code
+              class="highlighter-rouge">GET</code> requests but many tools don’t support them, <code
+              class="highlighter-rouge">GET</code> has length restrictions, etc. (<a target="_blank"
+              href="https://stackoverflow.com/questions/978061/http-get-with-request-body">Stack Overflow</a>). I could
+            rename these endpoints to make it more clear they are reads, not writes.</p>
+
+          <ul>
+            <li>
+              <p><code class="highlighter-rouge">GET|/v0/plays/:user_id</code>: get list of recently played track ids
+                for <code class="highlighter-rouge">user_id</code>. Endpoint supports paging.</p>
+            </li>
+            <li>
+              <p><code class="highlighter-rouge">GET|/v0/dw/:user_id</code>: get list of “Discover Weekly” playlists for
+                <code class="highlighter-rouge">user_id</code>. A playlist is a list of track ids.
+              </p>
+            </li>
+            <li>
+              <p><code class="highlighter-rouge">GET|/v0/top/:user_id</code>: get list of top track ids and artist ids
+                for <code class="highlighter-rouge">user_id</code></p>
+            </li>
+            <li>
+              <p><code class="highlighter-rouge">POST|/v0/tracks</code>: pass in <code
+                  class="highlighter-rouge">track_ids</code> to batch get tracks. A track has a name, artist id, album
+                id, and other fields.</p>
+            </li>
+            <li>
+              <p><code class="highlighter-rouge">POST|/v0/artists</code> pass in <code
+                  class="highlighter-rouge">artist_ids</code> to batch get artists. An artist has a name and other
+                fields.</p>
+            </li>
+            <li>
+              <p><code class="highlighter-rouge">POST|/v0/albums</code> pass in <code
+                  class="highlighter-rouge">album_ids</code> to batch get albums. An album has a name, artist ids, track
+                ids, and other fields.</p>
+            </li>
+          </ul>
+
+          <p>I wrote the server with ExpressJS. Originally, I was hosting it on AWS ElasticBeanstalk, but that was
+            costing me ~$20 / month to run an EC2 instance constantly. That’s more expensive than my Spotify
+            subscription! To lower costs, I migrated the Express app to a single Lambda function which was surprisingly
+            trivial.</p>
+
+          <p>I thought I would have to write (and was excited to write!) a Lambda wrapper for Express. The kind souls at
+            AWS Labs already did this though and <a target="_blank"
+              href="https://github.com/awslabs/aws-serverless-express">aws-serverless-express<a></a> was great.</a></p>
+
+          <p>Migrating off EC2 / Elastic Beanstalk to Lambda had the negative affect of breaking my in-memory cache. My
+            frontend relies on normalized batch requests for tracks, artists, and albums, which are beautifully
+            cache-able since track / artist / album is shared across many pages &amp; many users of the app. Previously,
+            I cached this in a in-memory object in my JS code which was easy and effective. Caching it made my app
+            faster and limited the number of reads to DynamoDB. Since Lambdas have shorter-lived memory, my in-memory
+            cache became less effective. This is a problem because with DynamoDB, you pay for read throughput and I
+            don’t want to pay more.</p>
+
+          <p>So, right now, every page load results in a couple more reads to DynamoDB than I would like. If I just want
+            to reduce the number of reads and am <em>really</em> stubborn about not paying for any more read capacity I
+            could:</p>
+
+          <ul>
+            <li>modify my frontend to request content less aggressively</li>
+            <li>stand up a Memcached / Redis layer in front of DynamoDB for ~$10 / month</li>
+            <li>add caching to API Gateway. This isn’t super useful right now since batch requests have different
+              request payloads across users since people listen to different combinations of songs, artists, etc.</li>
+            <li>add caching to API Gateway &amp; change request structure. Don’t use batch get endpoints and instead
+              make clients make many more network requests so we can take advantage of API Gateway caching.</li>
+            <li>pay for a RDS instance so I care less about read throughput</li>
+            <li>build a different frontend flow that doesn’t use this JSON API entirely. Instead only allow users to
+              download exportable CSV / SQL files from S3. I talk a little more about this in the “DynamoDB” section.
+              This is the option I am most likely to pursue.</li>
+          </ul>
+
+          <h4 id="write-lambdas">Write Lambdas</h4>
+
+          <p>The mitochondria of the system. There are 3 Lambda functions: one for all plays, one for “Discovery
+            Weekly”, and one for your top songs &amp; artists. The Lambdas use scheduled CloudWatch events to hit the
+            Spotify API regularly to pull all data and write it to DynamoDB. These same Lambdas can also be triggered by
+            SNS events. I do this when a new user signs up so that their data shows up the Vue app without waiting for
+            the next scheduled job.</p>
+
+          <p>The main tricky part here was around tracking all plays on Spotify. Spotify has an endpoint that lets you
+            access your 50 most recent plays. Spotify counts a “play” as listening to a song for 30 seconds or more.
+            This means that one could conceivably listen to 50 songs in 25 minutes. If I want to track <em>all</em>
+            plays, I need to hit Spotify at least every 25 minutes. I set up this Lambda to run at *:00, *:20, *:40 so I
+            hit Spotify frequently enough and have nice, predictably timestamps.</p>
+
+          <p>This part of the system will become a bottleneck if too many people use this app. Here are 3 bottlenecks:
+          </p>
+
+          <ul>
+            <li>
+              <p>Many users means more DB writes and I don’t want to pay for more write units.
+                <strong>Solution:</strong> just buy more write units or pay for a relational DB. Alternatively, just
+                increase write capacity temporarily during scheduled jobs. This is a problem though if I change the
+                lambda schedule so there is usually at least 1 job running.
+              </p>
+            </li>
+            <li>
+              <p>Many users means my Lambda takes longer. Lambdas must take under 15 minutes. <strong>Solution:</strong>
+                change the structure of my Lambda so it doesn’t call the Spotify API for all users in a single function.
+                Use a distributed queue (SQS), more lambdas, etc. to spread work out.</p>
+            </li>
+            <li>
+              <p>Many users means many requests to the Spotify API and they could throttle me.
+                <strong>Solution:</strong> Ask Spotify for more request volume. Or, change the Lambda schedule so that I
+                don’t bombard Spotify with requests for all users at *:00, *:20, *:40. Instead, spread users out so that
+                everyone has a different offset - user 1 goes at *:00:00, *:20:00, *:40:00, user 2 goes at *:00:30,
+                *:20:30, *:40:30, user 3 goes at *:01:00, *:21:00, *:41:00, etc. Note, using the <a target="_blank"
+                  href="https://spotify.suczewski.com/">https://spotify.suczewski.com</a> frontend <strong>does
+                  not</strong> result in any requests to the Spotify API aside from static assets. The frontend runs
+                entirely off DynamoDB. Requests to the Spotify API come only through the scheduled Lambdas &amp; SNS
+                events on new user registration.
+              </p>
+            </li>
+          </ul>
+
+          <p>Here’s my Spotify API usage graphs. It requires ~700 requests / day to run this app for 9 users. On
+            Mondays, I fetch everybody’s “Discovery Weekly” playlist and top songs &amp; artists, so there’s some 7 day
+            periodicity in the API usage graphs.</p>
+
+          <div style="font-weight:bold;font-size:14px;text-align:center">Requests to Spotify API by endpoint</div>
+          <p><img class="spotify-graph" src="/static/spotify-requests-endpoint.png" /></p>
+
+          <div style="font-weight:bold;font-size:14px;text-align:center">Total requests to Spotify API</div>
+          <p><img class="spotify-graph" src="/static/spotify-requests-total.png" /></p>
+
+          <h4 id="dynamodb">DynamoDB</h4>
+
+          <p>I used Amazon’s hosted NRDB, DynamoDB. I chose this mainly for cost reasons. In my architecture, RDS would
+            be $13 / month and Dynamo would be $3 / month.</p>
+
+          <p>The smallest RDB, a <code class="highlighter-rouge">t2.micro</code> costs $0.018 / hour or ~$13 / month.
+            This must always be running to support the app.</p>
+
+          <p>Conversely, the cost of a Dynamo table comes primarily from the read / write throughput costs. A Dynamo
+            read unit costs $0.00013 / hour or $0.09 / month and a write unit costs $0.00065 / hour or $0.47 / month.
+            You must have at least one read unit and one write unit per database table so a table costs $0.56 / month. I
+            have 5 tables, so my DB costs $2.80 / month. There are additional costs for the amount of data you have
+            stored (I don’t have a lot) and table indexes (I don’t have a lot).</p>
+
+          <p>I architected my application to minimize read / write throughput. All of my tables currently only require 1
+            read and 1 write unit. This is why the batch get endpoints and initial Elastic Beanstalk / EC2 in-memory
+            cache was great - it let me keep DB costs super low. In the new Lambda architecture, I will have to consider
+            paying for more read units, adding caching, or moving to RDS if app usage grows.</p>
+
+          <p>A radically different approach I could take would be to take my DB out of the production frontend line of
+            fire and use DynamoDB data to build CSV / SQL data exports in S3 asynchronously. I would abandon the
+            complicated JSON API “single page app” and build an app to just let users download their CSV / SQL. Users
+            could then use CSV / SQL explorers to do what they want with their data. This is the <em>most</em> likely
+            infrastructural thing I will pursue since it seems like a great way to make this accessible to more people
+            at a low cost. I could keep the JSON API &amp; Vue UI up for a restricted set of users. I like this because
+            it gives folks the important data they want and the system requires less ongoing maintenance from me. I
+            don’t intend to devote more time to this project moving forward outside of visualizations &amp; data
+            insights, so this could be a nice hands-off approach to keep things going.</p>
+
+          <h4 id="terraform">Terraform</h4>
+
+          <p>I wanted static configuration to manage my infrastructure. Declarative infrastructure means that in a few
+            months / years if I revisit this project, I don’t have to remember which sequence of actions I took in the
+            AWS Console to build my house of cards. I’ve used AWS’s CloudFormation before, but wanted to give Terraform
+            a try for this project. I’m a fan!</p>
+
+          <p>I’ve built the scaffolding and have API Gateway / Lambda / Custom Domain infrastructure set up. I also have
+            a code build / deployment flow set up. I store build artifacts in S3 and deploy them with Terraform. Here’s
+            a working Terraform-managed endpoint: <a target="_blank"
+              href="https://api.suczewski.com/v0/hello-world">https://api.suczewski.com/v0/hello-world</a>. Working on
+            getting the rest of the content in this article into Terraform too.</p>
+
+          <h3 id="next-frontiers">Next Frontiers</h3>
+
+          <p>I’ve been running this system for 6 months and it has been fun! The next frontiers for continued
+            development are:</p>
+
+          <ul>
+            <li>insights: learn! build more sophisticated data exploration / querying / export tools. Now is the fun
+              part - what can we discover?</li>
+            <li>visualization: build cool visualizations around all the data I’m tracking - song, artist, &amp; album
+              listening history. Infinite possibilities. A few in mind!</li>
+            <li>open source: clean the code up &amp; open source it</li>
+            <li>scale: consider super-scalable solution. Do not hit DynamoDB from frontend. Only support S3 data
+              exports.</li>
+            <li>scale: scale the system so that it can support O(1000) users 1) with infrastructure costs at ~$10 /
+              month and 2) without Spotify throttling me</li>
+            <li>bugs: fix empty thumbnail images, occasionally empty rows</li>
+          </ul>
+
+          <p>In all likelihood, I will move on to other projects and just do the first two at some point later - ad-hoc
+            querying &amp; visualization as data continues to flow in. The insights, visualizations, and good memories
+            are why I started the project so I will likely spend more time on that, the fun part! Article with cool
+            visualizations and findings at some point. I may also pursue the super-scalable, S3-only solution.</p>
+
+          <p>Thanks!</p>
+
+        </div>
+      </article>
+
+    </div>
+  </div>
+</body>
+<script type="text/javascript">
+  var items = document.getElementsByClassName('my-email');
+  var e1 = 'YWRhbQ==';
+  var e2 = 'QHN1Y3pld3NraS5jb20';
+  for (var i = 0; i < items.length; i++) {
+    items[i].innerHTML = atob(e1) + '<span></span>' + atob(e2);
+  }
+</script>
+
+</html>

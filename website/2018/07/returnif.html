@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>returnif - introducing the conditional return statement</title>
+  <meta name="description" content="Introduction">
+
+  <link rel="shortcut icon" type="image/png" href="/static/favicon-32.png">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="//2018/07/returnif.html">
+</head>
+
+<body>
+  <div class="site-header">
+    <div class="wrapper">
+      <a href="/"><img class="profile-img" src="/static/adam.jpg" /></a>
+      <a class="site-title" href="/">Adam Suczewski</a>
+      <a class="site-about" href="/about.html">about</a>
+      <a class="site-training" href="/training.html">training</a>
+    </div>
+  </div>
+
+  <div class="page-content">
+    <div class="wrapper">
+      <meta property="og:title" content="returnif - introducing the conditional return statement">
+      <meta property="twitter:title" content="returnif - introducing the conditional return statement">
+      <meta property="og:description" content="An introduction to the `returnif` keyword.">
+      <meta property="twitter:description" content="An introduction to the `returnif` keyword.">
+
+      <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+        <header class="post-header">
+          <h1 class="post-title" itemprop="name headline">returnif - introducing the conditional return statement</h1>
+        </header>
+        <hr /><br />
+        <div class="post-content" itemprop="articleBody">
+          <h3 id="introduction">Introduction</h3>
+
+          <p>Clean code is satisfying. Consistent visual structure makes it even better. <code
+              class="highlighter-rouge">returnif</code> is a whimsical keyword that helps make code beautiful.</p>
+
+          <p><code class="highlighter-rouge">returnif</code> allows one to return from a function conditionally based on
+            1) the truthiness of the value to be returned or 2) a precondition.</p>
+
+          <h4 id="case-1-the-truthiness-of-the-value-to-be-returned">Case 1: the truthiness of the value to be returned
+          </h4>
+
+          <p>If the value of the expression to be returned is truthy, return it.</p>
+
+          <p>Consider the common pattern of early function termination based on argument validation.</p>
+
+          <figure class="highlight">
+            <pre><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">f</span><span class="p">(</span><span class="nx">arg</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">err</span> <span class="o">=</span> <span class="nx">validate</span><span class="p">(</span><span class="nx">arg</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nx">err</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="nx">doSomething</span><span class="p">(</span><span class="nx">arg</span><span class="p">);</span>
+    <span class="p">...</span>
+<span class="p">}</span></code></pre>
+          </figure>
+
+          <p>With a conditional return, we can do the same thing in a single line.</p>
+
+          <figure class="highlight">
+            <pre><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">f</span><span class="p">(</span><span class="nx">arg</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">returnif</span> <span class="nx">validate</span><span class="p">(</span><span class="nx">arg</span><span class="p">);</span>
+
+    <span class="nx">doSomething</span><span class="p">(</span><span class="nx">arg</span><span class="p">);</span>
+    <span class="p">...</span>
+<span class="p">}</span></code></pre>
+          </figure>
+
+          <h4 id="case-2-a-precondition">Case 2: a precondition</h4>
+
+          <p>If the value of the precondition expression is truthy, return the value of the consequent expression.</p>
+
+          <p>Consider a similar pattern, but where we wish to return some other value.</p>
+
+          <figure class="highlight">
+            <pre><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">fibonacci</span><span class="p">(</span><span class="nx">num</span><span class="p">,</span> <span class="nx">results</span> <span class="o">=</span> <span class="p">{})</span> <span class="p">{</span>
+    <span class="nx">returnif</span> <span class="nx">results</span><span class="p">[</span><span class="nx">num</span><span class="p">];</span> <span class="c1">// case 1!</span>
+
+    <span class="c1">// replace this with `returnif`</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">num</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="nx">results</span><span class="p">[</span><span class="nx">num</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="nx">fibonacci</span><span class="p">(</span><span class="nx">num</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">results</span><span class="p">)</span> <span class="o">+</span>
+        <span class="nx">fibonacci</span><span class="p">(</span><span class="nx">num</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="nx">results</span><span class="p">)</span>
+    <span class="p">);</span>
+<span class="p">}</span></code></pre>
+          </figure>
+
+          <p>With a conditional return, we can do the same thing in a single line.</p>
+
+          <figure class="highlight">
+            <pre><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">fibonacci</span><span class="p">(</span><span class="nx">num</span><span class="p">,</span> <span class="nx">results</span> <span class="o">=</span> <span class="p">{})</span> <span class="p">{</span>
+    <span class="nx">returnif</span> <span class="nx">results</span><span class="p">[</span><span class="nx">num</span><span class="p">];</span>
+    <span class="nx">returnif</span> <span class="p">(</span><span class="nx">num</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">)</span> <span class="err">:</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="k">return</span> <span class="nx">results</span><span class="p">[</span><span class="nx">num</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="nx">fibonacci</span><span class="p">(</span><span class="nx">num</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">results</span><span class="p">)</span> <span class="o">+</span>
+        <span class="nx">fibonacci</span><span class="p">(</span><span class="nx">num</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="nx">results</span><span class="p">)</span>
+    <span class="p">);</span>
+<span class="p">}</span></code></pre>
+          </figure>
+
+          <p><code class="highlighter-rouge">returnif</code> starts looking like a pattern match structure (<a
+              target="_blank" href="https://www2.lib.uchicago.edu/keith/ocaml-class/pattern-matching.html">like in
+              OCaml</a>), or <a target="_blank" href="https://lodash.com/docs/4.17.10#cond">_.cond from the JS lodash
+              library</a>.</p>
+
+          <p>That’s it! A new building block. Infinite possibilities. Syntactic sugar for <code
+              class="highlighter-rouge">return</code> and <code class="highlighter-rouge">if</code>. <a target="_blank"
+              href="https://softwareengineering.stackexchange.com/questions/118703/where-did-the-notion-of-one-return-only-come-from">Use
+              wisely</a>.</p>
+
+          <h3 id="build">Build</h3>
+
+          <p>Here’s a <strong>quick, proof-of-concept hack</strong> to transpile <code
+              class="highlighter-rouge">returnif</code> in JavaScript via the <a target="_blank"
+              href="https://babeljs.io/">Babel compiler</a>. The forgivingness of JavaScript and the prevalence of the
+            Babel compiler seemed like the quickest way to bring <code class="highlighter-rouge">returnif</code> to
+            life.</p>
+
+          <p>Adding a new keyword or language concept requires modification to the parsing of the <a target="_blank"
+              href="https://github.com/babel/babel/blob/master/packages/babel-parser/ast/spec.md">abstract syntax tree
+              (AST)</a> so, <code class="highlighter-rouge">returnif</code> cannot be added through a <a target="_blank"
+              href="https://babeljs.io/docs/en/plugins">Babel plugin</a> alone.</p>
+
+          <p>I’ve only (kinda) done case 1 – consider case 2 an exercise for the reader.</p>
+
+          <h4 id="step-1--parse">Step 1 – Parse</h4>
+
+          <p>Add <code class="highlighter-rouge">returnif</code> to the Babel AST parser.</p>
+
+          <p>I forked Babel and added a few lines to interpret <code class="highlighter-rouge">returnif</code> similar
+            to <code class="highlighter-rouge">return</code>. Their declarations and representations in the AST are the
+            same for case 1.</p>
+
+          <div class="highlighter-rouge">
+            <pre class="highlight"><code>interface ReturnStatement &lt;: Statement {
+  type: "ReturnStatement";
+  argument: Expression | null;
+}
+
+interface ReturnIfStatement &lt;: Statement {
+  type: "ReturnIfStatement";
+  argument: Expression | null;
+}
+</code></pre>
+          </div>
+
+          <p><a target="_blank" href="https://github.com/adamlouis/babel/pull/4">adamlouis/babel | Pull request for
+              steps 1 &amp; 2</a></p>
+
+          <h4 id="step-2--generate">Step 2 – Generate</h4>
+
+          <p>Generate vanilla js from the <code class="highlighter-rouge">ReturnIfStatement</code> introduced in step 1.
+          </p>
+
+          <p>Since <code class="highlighter-rouge">returnif</code> is syntactic sugar for <code
+              class="highlighter-rouge">return</code> and <code class="highlighter-rouge">if</code>, generation builds a
+            template like:</p>
+
+          <figure class="highlight">
+            <pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">a</span> <span class="o">=</span> <span class="o">&lt;</span><span class="nx">ReturnIf</span><span class="p">.</span><span class="nx">argument</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="k">if</span> <span class="p">(</span><span class="nx">a</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">a</span><span class="p">;</span>
+<span class="p">}</span></code></pre>
+          </figure>
+
+          <p>If we create a temporary <code class="highlighter-rouge">var</code> in the template:</p>
+          <ol>
+            <li>its name must not collide with others in our program</li>
+            <li>transpiling should remain deterministic</li>
+          </ol>
+
+          <p>Using the <strong>hash of the AST node as a variable name suffix</strong> (probably) achieves these 2
+            properties. This seems both clever and dirty, but it’s what I went with.</p>
+
+          <figure class="highlight">
+            <pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">ReturnIf_</span><span class="o">&lt;</span><span class="nx">hash</span><span class="p">(</span><span class="nx">node</span><span class="p">)</span><span class="o">&gt;</span> <span class="o">=</span> <span class="o">&lt;</span><span class="nx">ReturnIf</span><span class="p">.</span><span class="nx">argument</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="k">if</span> <span class="p">(</span><span class="nx">ReturnIf_</span><span class="o">&lt;</span><span class="nx">hash</span><span class="p">(</span><span class="nx">node</span><span class="p">)</span><span class="o">&gt;</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">ReturnIf_</span><span class="o">&lt;</span><span class="nx">hash</span><span class="p">(</span><span class="nx">node</span><span class="p">)</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="p">}</span></code></pre>
+          </figure>
+
+          <p>Is there another way to do this? An approach where we <em>don’t</em> need a var name? Prior art?</p>
+
+          <p><a target="_blank" href="https://github.com/adamlouis/babel/pull/4">adamlouis/babel | Pull request for
+              steps 1 &amp; 2</a></p>
+
+          <h4 id="step-3--use">Step 3 – Use</h4>
+
+          <p>Use the new <code class="highlighter-rouge">returnif</code> keyword.</p>
+
+          <p><a target="_blank" href="https://github.com/adamlouis/returnif">adamlouis/returnif</a> includes <a
+              target="_blank" href="https://github.com/adamlouis/babel/pull/4">adamlouis/babel</a> as a git submodule
+            and uses the new keyword. The <a target="_blank"
+              href="https://github.com/adamlouis/returnif/blob/master/index.js">adamlouis/retunif/index.js</a> file:</p>
+          <ol>
+            <li>reads all files in <code class="highlighter-rouge">js-samples</code> dir as strings</li>
+            <li>runs <code class="highlighter-rouge">generate(parse(CODE))</code></li>
+            <li>writes the AST and the transpiled JS to <code class="highlighter-rouge">js-gen</code> dir</li>
+            <li>executes the generated js in the <code class="highlighter-rouge">js-gen</code> dir</li>
+          </ol>
+
+          <p>Before:</p>
+
+          <figure class="highlight">
+            <pre><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">fibonacci</span><span class="p">(</span><span class="nx">num</span><span class="p">,</span> <span class="nx">results</span> <span class="o">=</span> <span class="p">{})</span> <span class="p">{</span>
+    <span class="nx">returnif</span> <span class="nx">results</span><span class="p">[</span><span class="nx">num</span><span class="p">];</span>
+
+    <span class="c1">// TODO -&gt; returnif (num &lt;= 1) : 1;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">num</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="nx">results</span><span class="p">[</span><span class="nx">num</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="nx">fibonacci</span><span class="p">(</span><span class="nx">num</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">results</span><span class="p">)</span> <span class="o">+</span>
+        <span class="nx">fibonacci</span><span class="p">(</span><span class="nx">num</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="nx">results</span><span class="p">)</span>
+    <span class="p">);</span>
+<span class="p">}</span></code></pre>
+          </figure>
+
+          <p>After:</p>
+
+          <figure class="highlight">
+            <pre><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">fibonacci</span><span class="p">(</span><span class="nx">num</span><span class="p">,</span> <span class="nx">results</span> <span class="o">=</span> <span class="p">{})</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">returnIf_2978980376</span> <span class="o">=</span> <span class="p">(</span><span class="nx">results</span><span class="p">[</span><span class="nx">num</span><span class="p">]);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">returnIf_2978980376</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nx">returnIf_2978980376</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// TODO -&gt; returnif (num &lt;= 1) : 1;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">num</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="nx">results</span><span class="p">[</span><span class="nx">num</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="nx">fibonacci</span><span class="p">(</span><span class="nx">num</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">results</span><span class="p">)</span> <span class="o">+</span>
+        <span class="nx">fibonacci</span><span class="p">(</span><span class="nx">num</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="nx">results</span><span class="p">)</span>
+    <span class="p">);</span>
+<span class="p">}</span></code></pre>
+          </figure>
+
+          <p><a target="_blank" href="https://github.com/adamlouis/returnif">adamlouis/returnif | Repository for step
+              3</a></p>
+
+          <h3 id="thanks">Thanks!</h3>
+
+          <p>Thanks for reading my first website article! Send me a note at <span class="my-email">MYEMAIL</span>, or on
+            <a target="_blank" href="https://github.com/adamlouis/babel/pull/4">adamlouis/babel</a> or <a
+              target="_blank" href="https://github.com/adamlouis/returnif">adamlouis/returnif</a> with and thoughts and
+            feedback.
+          </p>
+
+        </div>
+      </article>
+
+    </div>
+  </div>
+</body>
+<script type="text/javascript">
+  var items = document.getElementsByClassName('my-email');
+  var e1 = 'YWRhbQ==';
+  var e2 = 'QHN1Y3pld3NraS5jb20';
+  for (var i = 0; i < items.length; i++) {
+    items[i].innerHTML = atob(e1) + '<span></span>' + atob(e2);
+  }
+</script>
+
+</html>
