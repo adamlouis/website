@@ -3,12 +3,8 @@
 ###############################################################################
 
 provider "aws" {
-  region = "us-west-1"
-}
-
-provider "aws" {
+  # Cloudfront (API Gateway) requires certificate manager in region us-east-1
   region = "us-east-1"
-  alias  = "east_1"
 }
 
 # ###############################################################################
@@ -18,9 +14,6 @@ provider "aws" {
 data "aws_acm_certificate" "suczewski_com" {
   domain   = "suczewski.com"
   statuses = ["ISSUED"]
-
-  # Cloudfront (API Gateway) requires certificate manager in region us-east-1
-  provider = aws.east_1
 }
 
 # # ###############################################################################
